@@ -37,10 +37,16 @@ namespace J2534DotNet
     {
         public J2534Err GetConfig(int channelId, ref List<SConfig> config)
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.GET_CONFIG, input, output);
+            SConfigList sconfl = new SConfigList() {
+                ListPtr = Marshal.UnsafeAddrOfPinnedArrayElement(config.ToArray(), 0),
+                Count = config.Count
+            };
+            IntPtr input = Marshal.AllocHGlobal(Marshal.SizeOf(sconfl));
+            Marshal.StructureToPtr(sconfl, input, true);
+            var ret = (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.GET_CONFIG, input, IntPtr.Zero);
+            config = ((SConfigList)Marshal.PtrToStructure(input, typeof(SConfigList))).GetList();
+            Marshal.FreeHGlobal(input);
+            return ret;
         }
 
         public J2534Err SetConfig(int channelId, ref List<SConfig> config)
